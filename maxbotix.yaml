@@ -1,0 +1,76 @@
+# Maxbotix LV-MaxSonar-EZ Series High Performance Sonar Range Finder
+# Sensor for ESPHome and HomeAssistant
+#
+# Datasheet for LV-EZ Sensors: https://www.maxbotix.com/documents/LV-MaxSonar-EZ_Datasheet.pdf
+# Based on code from ESPHome custom text sensor and others: https://esphome.io
+# YAML Example from: https://github.com/kquinsland/ws3-to-esphome-bridge/blob/master/esphome/ws3.yaml
+#
+# 2021-06-14 Stephen Houser <stephenhouser@gmail.com>
+
+# Change the values here, or the lookup key in your secrets.yaml file
+# See: https://esphome.io/guides/faq.html#how-do-i-use-my-home-assistant-secrets-yaml
+substitutions:
+  device_name: "maxbotix"
+  friendly_name: "Maxbotix"
+  friendly_short: "maxbotix"
+
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+
+esphome:
+  name: ${device_name}
+  platform: ESP32
+  board: nodemcu-32s
+  includes:
+    - maxbotix_lvez_sensor.h
+
+logger:
+
+api:
+
+ota:
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+  fast_connect: true
+
+uart:
+  tx_pin: GPIO12
+  rx_pin: GPIO13
+  invert: true
+  baud_rate: 9600
+  parity: NONE
+  data_bits: 8
+  stop_bits: 1
+  id: maxbotix_uart
+
+sensor:
+  - platform: custom
+    lambda: |-
+      auto maxbotix = new LVMaxSonarEZSensor(id(maxbotix_uart));
+      App.register_component(maxbotix);
+      return {maxbotix->inch_sensor, maxbotix->meter_sensor};
+
+    sensors:
+      - id: "${friendly_short}_distance_inch"
+        name: "${friendly_name} Impereial Distance"
+        icon: 'mdi:arrow-expand-vertical'
+        unit_of_measurement: in
+        accuracy_decimals: 0
+        force_update: true
+        filters:
+          - or:
+            - throttle: 10s
+            - delta: 2.0
+
+      - id: "${friendly_short}_distance_m"
+        name: "${friendly_name} Metric Distance"
+        icon: 'mdi:arrow-expand-vertical'
+        unit_of_measurement: m
+        accuracy_decimals: 2
+        force_update: true
+        filters:
+          - or:
+            - throttle: 10s
+            - delta: 0.03
